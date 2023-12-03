@@ -1,3 +1,13 @@
+import dataclasses
+
+
+@dataclasses.dataclass
+class Gear:
+    x: int
+    y: int
+    length: int
+
+
 class Map:
     def __init__(self, file: str):
         self.map = []
@@ -8,7 +18,7 @@ class Map:
 
     def get(self, x: int, y: int):
         if x < 0 or y < 0 or x >= len(self.map[0]) or y >= len(self.map):
-            return ' ';
+            return ' '
         else:
             return self.map[y][x]
 
@@ -21,7 +31,9 @@ class Map:
         for line in self.map:
             print(''.join(line))
 
-    def get_neighbour_coords(self, x1: int, y1: int, x2: int, y2: int) -> set[tuple[int, int]]:
+    @staticmethod
+    def get_neighbour_coords(gear: Gear) -> set[tuple[int, int]]:
+        x1, y1, x2, y2 = gear.x, gear.y, gear.x + gear.length - 1, gear.y
         result = set()
         for x in range(x1 - 1, x2 + 2):
             result.add((x, y1 - 1))
@@ -36,13 +48,13 @@ class Map:
             return
         self.map[y][x] = c
 
-    def is_at_least_one_neighbour_char(self, x1: int, y1: int, x2: int, y2: int) -> bool:
-        for x, y in self.get_neighbour_coords(x1, y1, x2, y2):
+    def is_at_least_one_neighbour_char(self, gear: Gear) -> bool:
+        for x, y in self.get_neighbour_coords(gear):
             if self.is_character(x, y):
                 return True
         return False
 
-    def find_numbers(self) -> list[tuple[int, int, int]]:
+    def find_gears(self) -> list[Gear]:
         result = []
         n_x = None
         n_y = None
@@ -51,25 +63,23 @@ class Map:
                 if self.get(x, y).isdigit():
                     if n_x is None:  # start number recording
                         n_x, n_y = x, y
-                    else:  # continue
-                        pass
                 else:
                     if n_x is None:
                         pass
                     else:
-                        result.append((n_x, n_y, x - n_x))
+                        result.append(Gear(n_x, n_y, x - n_x))
                         n_x, n_y = None, None
         return result
 
-    def get_number(self, x, y, l):
-        return int((''.join(self.map[y]))[x: x + l])
+    def get_number(self, gear: Gear) -> int:
+        return int((''.join(self.map[gear.y]))[gear.x: gear.x + gear.length])
 
 
-def get_local_gears(all_gears, gx, gy, gl):
+def get_local_gears(all_gears: list[Gear], gear: Gear) -> list[Gear]:
     result = []
-    for x, y, l in all_gears:
-        if abs(y - gy) <= 2 and not (x == gx and y == gy):
-            result.append((x, y, l))
+    for i_gear in all_gears:
+        if abs(i_gear.y - gear.y) <= 2 and not (i_gear.x == gear.x and i_gear.y == gear.y):
+            result.append(i_gear)
     return result
 
 
@@ -83,24 +93,20 @@ def pair(a, b) -> tuple[int, int]:
 def main():
     m = Map('input1.txt')
     m.print_map()
-    adjacent_numbers = []
-    gears = m.find_numbers()
+    gears = m.find_gears()
     gear_pairs = set()
     for gear in gears:
-        x, y, l = gear
-        local_gears = get_local_gears(gears, x, y, l)
-        for neig_x, neig_y in m.get_neighbour_coords(x, y, x + l - 1, y):
+        local_gears = get_local_gears(gears, gear)
+        for neig_x, neig_y in m.get_neighbour_coords(gear):
             if m.get(neig_x, neig_y) != '*':
                 continue
             asterisk_x = neig_x
             asterisk_y = neig_y
-            # print('processing', asterisk_x, asterisk_y, 'for', m.get_number(x, y, l))
-            # print('local gears ', local_gears)
-            for lg_x, lg_y, lg_l in local_gears:
+            for local_gear in local_gears:
                 # print('checking', asterisk_x, asterisk_y, 'with', m.get_number(lg_x, lg_y, lg_l))
-                if (asterisk_x, asterisk_y) in m.get_neighbour_coords(lg_x, lg_y, lg_x + lg_l - 1, lg_y):
-                    print('gear', m.get_number(x, y, l), 'is next to', m.get_number(lg_x, lg_y, lg_l))
-                    gear_pairs.add(pair(m.get_number(x, y, l), m.get_number(lg_x, lg_y, lg_l)))
+                if (asterisk_x, asterisk_y) in m.get_neighbour_coords(local_gear):
+                    print('gear', m.get_number(gear), 'is next to', m.get_number(local_gear))
+                    gear_pairs.add(pair(m.get_number(gear), m.get_number(local_gear)))
 
     print(gear_pairs)
     print(sum([a * b for a, b in gear_pairs]))
