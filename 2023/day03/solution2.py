@@ -1,4 +1,5 @@
 import dataclasses
+import enum
 
 
 @dataclasses.dataclass
@@ -6,6 +7,13 @@ class Gear:
     x: int
     y: int
     length: int
+
+
+class StateActionEnum(enum.Enum):
+    NumberStarted = 0
+    NumberFinished = 1
+    ParsingNumber = 2
+    ParsingNothing = 3
 
 
 class Map:
@@ -54,21 +62,36 @@ class Map:
                 return True
         return False
 
+    @staticmethod
+    def get_state(is_current_digit: bool, is_prev_digit: bool) -> StateActionEnum:
+        if is_current_digit and is_prev_digit:
+            return StateActionEnum.ParsingNumber
+        elif is_current_digit and not is_prev_digit:
+            return StateActionEnum.NumberStarted
+        elif not is_current_digit and is_prev_digit:
+            return StateActionEnum.NumberFinished
+        elif not is_current_digit and not is_prev_digit:
+            return StateActionEnum.ParsingNothing
+
     def find_gears(self) -> list[Gear]:
         result = []
         n_x = None
         n_y = None
         for y in range(0, len(self.map) + 1):
             for x in range(0, len(self.map[0]) + 1):
-                if self.get(x, y).isdigit():
-                    if n_x is None:  # start number recording
-                        n_x, n_y = x, y
+                state = self.get_state(is_current_digit=self.get(x, y).isdigit(), is_prev_digit=n_x is not None)
+                if state == StateActionEnum.ParsingNothing:
+                    pass
+                elif state == StateActionEnum.NumberFinished:
+                    result.append(Gear(n_x, n_y, x - n_x))
+                    n_x, n_y = None, None
+                elif state == StateActionEnum.NumberStarted:
+                    n_x, n_y = x, y
+                elif state == StateActionEnum.ParsingNumber:
+                    pass
                 else:
-                    if n_x is None:
-                        pass
-                    else:
-                        result.append(Gear(n_x, n_y, x - n_x))
-                        n_x, n_y = None, None
+                    assert False
+
         return result
 
     def get_number(self, gear: Gear) -> int:
