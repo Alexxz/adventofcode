@@ -122,7 +122,7 @@ def main():
         local_gears = get_local_gears(gears, gear)
         for neig_x, neig_y in m.get_neighbour_coords(gear):
             if m.get(neig_x, neig_y) != '*':
-                continue
+                continxue
             asterisk_x = neig_x
             asterisk_y = neig_y
             for local_gear in local_gears:
